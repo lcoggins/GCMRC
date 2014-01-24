@@ -2,7 +2,7 @@
 rm(list=ls(all=TRUE)) 
 graphics.off()
 windows(record=T)
-setwd ("\\\\CCFHR-S-1720365\\Restrict3\\LCoggins\\2013 Work\\GCSDM")
+setwd ("\\\\CCFHR-S-1720365\\Restrict3\\LCoggins\\Git\\GCMRC")
 
 #prepare the historical data for comparison with the predictions
 histdat=read.csv(file='rbt_hist_sum.csv')
@@ -31,8 +31,8 @@ Q=pars[1]
 #Q=Qinit
 sigma=pars[2]
 #sigma=siginit
-#mdm=mdminit
-mdm=pars[3]
+mdm=mdminit
+#mdm=pars[3]
 logitzeroinf=-20
 zeroinf=expit(logitzeroinf)
 #print(paste('Q is ',Q))
@@ -203,18 +203,21 @@ obsOutmig=c(7500.948, 2965.82, 10838.41, 24784.04, 58564.31,
             1517.380, 10834.17, 99020.74, 131703.6, 134571.0,NA)
 
 
-Qinit=3.4
-siginit=3.4
+Qinit=1.4
+siginit=5.4
 mdminit=0
 zeroinfinit=-20
-parms=c(Qinit,siginit,mdminit)
-#parms=c(Qinit,siginit)
+#parms=c(Qinit,siginit,mdminit)
+parms=c(Qinit,siginit)
 #parms=c(Qinit)
 #parms=c(siginit,mdminit)
 #parms=c(siginit,zeroinfinit)
 #parms=c(siginit)
 
 res=optim(parms,tune,control=list(trace=TRUE))
+#Qinit=res$par[1]
+#siginit=res$par[2]
+#res
 #res=optim(parms,tune,method='BFGS',control=list(trace=TRUE))
 #optim(parms,tune,method='Brent',lower=1,upper=30,control=list(trace=TRUE))
 
@@ -255,4 +258,4 @@ for(i in 2000:2009){
   }  
 }
 par=op
-#res
+res
