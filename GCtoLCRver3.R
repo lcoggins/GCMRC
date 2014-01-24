@@ -3,13 +3,56 @@ rm(list=ls(all=TRUE))
 graphics.off()
 windows(record=T)
 setwd ("\\\\CCFHR-S-1720365\\Restrict3\\LCoggins\\Git\\GCMRC")
-
+require(memisc)
 #####################################
 # Define Functions
 #####################################
 
 expit=function(x){1/(1+exp(-x))}
 
+#this function figures out the number of MR trips based on the september abundance (x)
+# getnumtrips=function(x){
+#   y=lf2lcrFixedPars$MrTrigVec
+#   nmtrips=cases(
+#     x<y[1]->0,
+#     x>=y[2] &x<y[3]->2,
+#     x>=y[3] &x<y[4]->3,
+#     x>=y[4] &x<y[5]->4,
+#     x>=y[5] &x<y[6]->5,
+#     x>=y[6] ->6
+#   )
+#   return(nmtrips)
+# }
+getnumtrips=function(x){
+  y=lf2lcrFixedPars$MrTrigVec
+  
+  
+  if(x<y[1]){nmtrips=0
+    }else{
+      if(x>=y[2] &x<y[3]){nmtrips=2
+      }else{
+        if(x>=y[3] &x<y[4]){nmtrips=3
+        }else{                  
+          if(x>=y[4] &x<y[5]){nmtrips=4
+          }else{
+            if(x>=y[5] &x<y[6]){nmtrips=5
+            }else{
+              if(x>=y[6]){nmtrips=6}}}}}}
+   return(nmtrips)
+}
+
+#this function uses the number of trips (x) to assign the monthly mechanical removal vector
+getMecvec=function(x){
+     switch(x+1,
+     c(0,0,0,0,0,0,0,0,0,0,0,0),
+     c(0,0,0,0,0,0,1,0,0,0,0,0),
+     c(0,0,0,0,0,1,1,0,0,0,0,0),
+     c(0,0,0,0,1,1,1,0,0,0,0,0),
+     c(0,0,0,1,1,1,1,0,0,0,0,0),
+     c(0,0,1,1,1,1,1,0,0,0,0,0),
+     c(0,1,1,1,1,1,1,0,0,0,0,0)
+  )
+}
 
 #This function makes the movement matrix conditional on the variance of the normal kernal,
 #the mean distance moved each month, zero inflation to have a higher probability of moving 
@@ -158,7 +201,9 @@ lf2lcrFixedPars=list(InitVec=rep(10,151), #This is the Initial RBT Abundance
                      toofar=100,  #used to specify the max movement in a month
                      meandistmove=0, #used to specify an average amount of movement in miles
                      startyr=1990,
-                     duration=19) 
+                     duration=19,
+                     MrTrigVec=c(760,760,926,1649,2855,4864)
+                     ) 
 
 obsOutmig=c(7500.948, 2965.82, 10838.41, 24784.04, 58564.31,
             37788.56, 43309.8, 88600.62, 67744.24, 70546.81,
@@ -187,15 +232,22 @@ RbtByYear=matrix(NA,nrow=lf2lcrFixedPars$duration+1,ncol=7)
 #Now Loop over years.  
 #This is meant to be akin to how these functions will be incorporated into the full simulation
 for(yr in lf2lcrFixedPars$startyr:(lf2lcrFixedPars$startyr+lf2lcrFixedPars$duration)){
-remreachN=0  
+remreachN=0
 MRTRIG=0
 if(yr>lf2lcrFixedPars$startyr){remreachN=sum(AnnResults$rbtvec[63:64])+0.5*AnnResults$rbtvec[65]}
-AduChubN=runif(1,7500,7500) #this line is just a placeholder for using predicted HBC abundance
+AduChubN=runif(1,6000,6000) #this line is just a placeholder for using predicted HBC abundance
 if(AduChubN<7000&remreachN>760){MRTRIG=1}
+numtrips=getnumtrips(remreachN)
+Mecvec=getMecvec(numtrips)*MRTRIG
+print(remreachN)
+print(numtrips)
+print(Mecvec)
+
+
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #AnnResults contains the list of model output
-AnnResults=MoveTrout(year=yr,rbtvec=rbtN,AnnRec=obsOutmig[yr-(lf2lcrFixedPars$startyr-1)],MRtrig=MRTRIG)
+AnnResults=MoveTrout(year=yr,rbtvec=rbtN,MechVec=Mecvec,AnnRec=obsOutmig[yr-(lf2lcrFixedPars$startyr-1)],MRtrig=MRTRIG)
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 rbtN=AnnResults$rbtvec
