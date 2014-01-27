@@ -1,8 +1,11 @@
-#Lew Coggins 11/2013
+#####################################################
+#Lew Coggins Model Revisions in 2014.  Happy New Year
+#####################################################
+
 rm(list=ls(all=TRUE)) 
 graphics.off()
 windows(record=T)
-setwd ("\\\\CCFHR-S-1720365\\Restrict3\\LCoggins\\Git\\GCMRC")
+#setwd ("\\\\CCFHR-S-1720365\\Restrict3\\LCoggins\\Git\\GCMRC")
 
 
 #####################################
@@ -177,7 +180,7 @@ return(list(rbtvec=rbtvec,rbtmat=rbtmat,RbtIn4b=RbtIn4b,NumMecRem=NumMecRem,SepA
 ###########################################################
 ############################################################
 #START THE Main PROGRAM Segment
-#This next bloch of code is meant to be akin to how these functions will be incorporated into the full simulation
+#This next block of code is meant to be akin to how these functions will be incorporated into the full simulation model
 ############################################################
 #specify all of the parameters and the initial conditions
 
