@@ -3,26 +3,16 @@ rm(list=ls(all=TRUE))
 graphics.off()
 windows(record=T)
 setwd ("\\\\CCFHR-S-1720365\\Restrict3\\LCoggins\\Git\\GCMRC")
-require(memisc)
+
+
 #####################################
-# Define Functions
+# Start Function Definitions
 #####################################
 
 expit=function(x){1/(1+exp(-x))}
 
 #this function figures out the number of MR trips based on the september abundance (x)
-# getnumtrips=function(x){
-#   y=lf2lcrFixedPars$MrTrigVec
-#   nmtrips=cases(
-#     x<y[1]->0,
-#     x>=y[2] &x<y[3]->2,
-#     x>=y[3] &x<y[4]->3,
-#     x>=y[4] &x<y[5]->4,
-#     x>=y[5] &x<y[6]->5,
-#     x>=y[6] ->6
-#   )
-#   return(nmtrips)
-# }
+#Could be cleaned up with a "case" function instead of these clunky nested if statements
 getnumtrips=function(x){
   y=lf2lcrFixedPars$MrTrigVec
   
@@ -81,10 +71,11 @@ getMoveMatrix=function(sqdim=length(lf2lcrFixedPars$rivm),
   return(movemat)
 }
 
+
 ##This Function creates the survival Matrix conditional on Mechanical Removal trigger
-getSurvMatrix=function(MRtrig=0,
-                       month,
-                       MechVec=lf2lcrFixedPars$MechVec,
+getSurvMatrix=function(month,
+                       MechVec,
+#                       MechVec=lf2lcrFixedPars$MechVec,
                        MRpcap=lf2lcrFixedPars$MRpcap,
                        MRpass=lf2lcrFixedPars$MRpass,
                        UppEndMR=lf2lcrFixedPars$UppEndMR,
@@ -93,7 +84,7 @@ getSurvMatrix=function(MRtrig=0,
                        S=lf2lcrFixedPars$S){
   SurvMR=1
   #check if MR authorized
-  if(MRtrig==1&MechVec[month]==1){SurvMR=(1-MRpcap)^MRpass}
+  if(MechVec[month]==1){SurvMR=(1-MRpcap)^MRpass}
   Surv=rep(1,sqdim)
   Surv[UppEndMR:LowEndMR]=Surv[UppEndMR:LowEndMR]*SurvMR
   #Now Add natural Mortality to the survival vector
@@ -109,9 +100,9 @@ getSurvMatrix=function(MRtrig=0,
 #it will need to be supplied with the current year, status of the trout trigger for that year,
 #and the rbt abundance by river mile the last day of the previous year 
 MoveTrout=function(year,
-                   MRtrig=0,
                    rbtvec,
-                   MechVec=lf2lcrFixedPars$MechVec,
+                   MechVec,
+#                  MechVec=lf2lcrFixedPars$MechVec,
                    S=lf2lcrFixedPars$S,
                    MRpass=lf2lcrFixedPars$MRpass,
                    MRpcap=lf2lcrFixedPars$MRpcap,
@@ -140,7 +131,7 @@ for(mon in 1:12){
 rbtvec[1]=rbtvec[1]+AnnRec/12  
 
 #Now construct the survival matrix including Mechanical Removal if Authorized
-SMat=getSurvMatrix(month=mon,MRtrig=MRtrig)
+SMat=getSurvMatrix(month=mon,MechVec=MechVec)
 #print(diag(SMat))
 #print(SMat)
 #print(dim(SMat))
@@ -159,8 +150,6 @@ rbtmat[mon,]=c(sum(rbtvec[1:10]),
              sum(rbtvec[62]*0.5,rbtvec[63:65],rbtvec[66]*0.7))
 #RbtIn4b[mon]=rbtmat[mon,7]
 RbtIn4b[mon]=sum(rbtvec[64]*.6,rbtvec[65]*0.8)
-
-
 #print(rbtvec)
 #print(rbtmat)
 #plot(rbtvec,ylim=c(0,1000))
@@ -168,12 +157,19 @@ RbtIn4b[mon]=sum(rbtvec[64]*.6,rbtvec[65]*0.8)
 
 #matplot(t(MMat),type='l')
 #matplot(t(rbtmat),type='l')
-return(list(rbtvec=rbtvec,rbtmat=rbtmat,RbtIn4b=RbtIn4b))
+
+#get annual number of Removal Trips
+NumMecRem=sum(MechVec)
+
+#get September Trigger abundance
+SepAbun=RbtIn4b[9]
+  
+return(list(rbtvec=rbtvec,rbtmat=rbtmat,RbtIn4b=RbtIn4b,NumMecRem=NumMecRem,SepAbun=SepAbun))
 }
 
-#End Function Definitions
-##########################################################
-##########################################################
+#####################################
+# End Function Definitions
+#####################################
 
 
 
@@ -181,13 +177,14 @@ return(list(rbtvec=rbtvec,rbtmat=rbtmat,RbtIn4b=RbtIn4b))
 ###########################################################
 ############################################################
 #START THE Main PROGRAM Segment
+#This next bloch of code is meant to be akin to how these functions will be incorporated into the full simulation
 ############################################################
 #specify all of the parameters and the initial conditions
 
 
 lf2lcrFixedPars=list(InitVec=rep(10,151), #This is the Initial RBT Abundance
 #lf2lcrFixedPars=list(InitVec=5*(151:1), #This is the Initial RBT Abundance
-                     MechVec=rep(c(rep(1,3),rep(0,3)),2), #this is the bit that specifies which months CAN have mechanical removal
+                     #MechVec=rep(c(rep(1,3),rep(0,3)),2), #this is the bit that specifies which months CAN have mechanical removal
                      S=0.96,
                      MRpass=5,    #Number of MechRem passes
                      MRpcap=0.1,  #capture probability of each MR pass
@@ -205,71 +202,93 @@ lf2lcrFixedPars=list(InitVec=rep(10,151), #This is the Initial RBT Abundance
                      MrTrigVec=c(760,760,926,1649,2855,4864)
                      ) 
 
+# this obsOutmig vector is only for testing.  these numbers will come from Josh's portion that provides total annual 
+# Outmigrants (aka, recruits to downstream population
 obsOutmig=c(7500.948, 2965.82, 10838.41, 24784.04, 58564.31,
             37788.56, 43309.8, 88600.62, 67744.24, 70546.81,
             44704.52, 12792.74, 18986.56, 22107.93, 14111.24,
             1517.380, 10834.17, 99020.74, 131703.6, 134571.0,NA)
 
-# ParVar=0  #allow variation in parameter values for some funcitonal relationships among trials (0=no, >0=yes (# of trials))
-# IaVar=0  #interannual variation in predictions from some functional relationships (0-no,1=yes)
-# if(IaVar==0){
-#   Pstay_sd=0.000001
-#   
-# } else {
-#   Pstay_sd=lf2crFixedPars$Pstay_sd
-# }  
 
 
-#Define the initial rbt abundance by mile
-rbtN=lf2lcrFixedPars$InitVec
-
+##This is just for testing/visualization
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #Make a vector to keep track of the midyear abundance by 10 mile section
 #This can be used to "tune" the movement parameters to fit the historical patterns
-RbtByYear=matrix(NA,nrow=lf2lcrFixedPars$duration+1,ncol=7)
+#RbtByYear=matrix(NA,nrow=lf2lcrFixedPars$duration+1,ncol=7)
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-#Now Loop over years.  
-#This is meant to be akin to how these functions will be incorporated into the full simulation
+
+
+
+#First Define the initial rbt abundance by mile
+rbtN=lf2lcrFixedPars$InitVec
+
+##########Now START THE ANNUAL LOOP###########
 for(yr in lf2lcrFixedPars$startyr:(lf2lcrFixedPars$startyr+lf2lcrFixedPars$duration)){
 remreachN=0
 MRTRIG=0
-if(yr>lf2lcrFixedPars$startyr){remreachN=sum(AnnResults$rbtvec[63:64])+0.5*AnnResults$rbtvec[65]}
-AduChubN=runif(1,6000,6000) #this line is just a placeholder for using predicted HBC abundance
-if(AduChubN<7000&remreachN>760){MRTRIG=1}
-numtrips=getnumtrips(remreachN)
-Mecvec=getMecvec(numtrips)*MRTRIG
-print(remreachN)
-print(numtrips)
-print(Mecvec)
+AbuChubN=0                    #this line is just a placeholder for using predicted HBC abundance from the previous year
 
+#get hbc and rbt trigger abundances from previous year
+if(yr>lf2lcrFixedPars$startyr){
+  remreachN=RBTTrigAbun
+  AbuChubN=runif(1,6000,6000) #this line is just a placeholder for using predicted HBC abundance from the previous year
+}
 
+#Now evaluate MR trigger and decide number of MR trips
+if(AbuChubN<7000&remreachN>760){MRTRIG=1}
+numtrips=getnumtrips(remreachN)           #this bit gets the number of trips based on previous september removal reach abundance
+Mecvec=getMecvec(numtrips)*MRTRIG         #this bit builds the monthly vector of MR trips (0=no trip, 1=trip)
 
+#now move the fish
+############################################
+#The AnnRec should come from Josh's Model
+############################################
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #AnnResults contains the list of model output
-AnnResults=MoveTrout(year=yr,rbtvec=rbtN,MechVec=Mecvec,AnnRec=obsOutmig[yr-(lf2lcrFixedPars$startyr-1)],MRtrig=MRTRIG)
+AnnResults=MoveTrout(year=yr,rbtvec=rbtN,MechVec=Mecvec,AnnRec=obsOutmig[yr-(lf2lcrFixedPars$startyr-1)])
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+#now get the critical output
+#1) RBT numbers to drive HBC popdy
 rbtN=AnnResults$rbtvec
-#this is the matrix that can be used to tune the model
-RbtByYear[(yr-(lf2lcrFixedPars$startyr-1)),]=AnnResults$rbtmat[6,]
+#2) Number of Mechanical Removal Trips
+NMRtrips=AnnResults$NumMecRem
+#3) trigger RBT abundance in September
+RBTTrigAbun=AnnResults$SepAbun
 
 #Use the lines below to see some of the output
-plot(1:length(lf2lcrFixedPars$rivm),AnnResults$rbtvec,type='l',ylim=c(0,7500),
+##############
+#print(RBTTrigAbun)
+#print(NMRtrips)
+#print(Mecvec)
+##############
+plot(1:length(lf2lcrFixedPars$rivm),rbtN,type='l',ylim=c(0,7500),
      main=paste('this is the abundance at the end of December ',yr),xlab='rivermile')
 #print(AnnResults$RbtIn4b)
 #print(AnnResults$rbtmat[6,])
 #plot(1:7,AnnResults$rbtmat[6,],type='l',ylim=c(0,20000),
      #main=paste('these are the 10mile reach abundances at the end of July ',yr),xlab='10mile Reach')
-#Add the midyear abundances to the tuning matrix
+#this is the matrix that can be used to tune the model
+#RbtByYear[(yr-(lf2lcrFixedPars$startyr-1)),]=AnnResults$rbtmat[6,]
 
+##########Now END THE ANNUAL LOOP###########
 }
 
 #END THE MAIN PROGRAM SEGMENT HERE
 ##########################################################
 ##########################################################
 
-cbind(lf2lcrFixedPars$startyr:(lf2lcrFixedPars$startyr+lf2lcrFixedPars$duration),RbtByYear)
-plot(lf2lcrFixedPars$startyr:(lf2lcrFixedPars$startyr+lf2lcrFixedPars$duration),RbtByYear[,7],pch=19)
 
+
+
+
+
+
+###############This is just more code to visualize output####
+#get and plot the reach specific rbt abundance by year
+#cbind(lf2lcrFixedPars$startyr:(lf2lcrFixedPars$startyr+lf2lcrFixedPars$duration),RbtByYear)
+#plot(lf2lcrFixedPars$startyr:(lf2lcrFixedPars$startyr+lf2lcrFixedPars$duration),RbtByYear[,7],pch=19)
+#############################################################
 
