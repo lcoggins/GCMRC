@@ -22,15 +22,17 @@ getnumtrips=function(x){
   
   if(x<y[1]){nmtrips=0
     }else{
-      if(x>=y[2] &x<y[3]){nmtrips=2
+      if(x>=y[1] &x<y[2]){nmtrips=1
       }else{
-        if(x>=y[3] &x<y[4]){nmtrips=3
-        }else{                  
-          if(x>=y[4] &x<y[5]){nmtrips=4
-          }else{
-            if(x>=y[5] &x<y[6]){nmtrips=5
+        if(x>=y[2] &x<y[3]){nmtrips=2
+       }else{
+         if(x>=y[3] &x<y[4]){nmtrips=3
+         }else{                  
+           if(x>=y[4] &x<y[5]){nmtrips=4
             }else{
-              if(x>=y[6]){nmtrips=6}}}}}}
+             if(x>=y[5] &x<y[6]){nmtrips=5
+               }else{
+                if(x>=y[6]){nmtrips=6}}}}}}}
    return(nmtrips)
 }
 
@@ -202,8 +204,12 @@ lf2lcrFixedPars=list(InitVec=rep(10,151), #This is the Initial RBT Abundance
                      meandistmove=0, #used to specify an average amount of movement in miles
                      startyr=1990,
                      duration=19,
-                     MrTrigVec=c(760,760,926,1649,2855,4864)
-                     ) 
+                     statedepMR=0, #Set this to either 1 (if number of MR trips state dependent) or 0(if not state dependent on RBT abundance)
+                     #MrTrigVec=c(840,880,920,1649,2855,4864)
+                     #MrTrigVec=c(840,840,840,1649,2855,4864)
+                     #MrTrigVec=c(760,760,926,1649,2855,4864)
+                     MrTrigVec=c(760,760,760,760,760,760)  #this is the lookup vector for state dep MechRem. Considered only if variable statedepMR=1
+) 
 
 # this obsOutmig vector is only for testing.  these numbers will come from Josh's portion that provides total annual 
 # Outmigrants (aka, recruits to downstream population
@@ -239,9 +245,22 @@ if(yr>lf2lcrFixedPars$startyr){
   AbuChubN=runif(1,6000,6000) #this line is just a placeholder for using predicted HBC abundance from the previous year
 }
 
+#See numbers of fish to potentially trigger MR
+#print('input')
+#print(remreachN)
+
 #Now evaluate MR trigger and decide number of MR trips
 if(AbuChubN<7000&remreachN>760){MRTRIG=1}
-numtrips=getnumtrips(remreachN)           #this bit gets the number of trips based on previous september removal reach abundance
+#Now decide if MR trigger is state (abundance) dependent (specified by variable statedepMR) and assign potential number of MR trips
+if(lf2lcrFixedPars$statedepMR==1){
+  numtrips=getnumtrips(remreachN)           #this bit gets the number of trips based on previous september removal reach abundance
+  }else{
+    if(lf2lcrFixedPars$statedepMR==0){
+      numtrips=6 
+    }else{
+      print('statedepMR variable must be either 1 or 0')
+    }}
+  
 Mecvec=getMecvec(numtrips)*MRTRIG         #this bit builds the monthly vector of MR trips (0=no trip, 1=trip)
 
 #now move the fish
@@ -263,12 +282,14 @@ RBTTrigAbun=AnnResults$SepAbun
 
 #Use the lines below to see some of the output
 ##############
-#print(RBTTrigAbun)
+#print('output')
+##print(RBTTrigAbun)
+#print('numtrips')
 #print(NMRtrips)
 #print(Mecvec)
 ##############
-plot(1:length(lf2lcrFixedPars$rivm),rbtN,type='l',ylim=c(0,7500),
-     main=paste('this is the abundance at the end of December ',yr),xlab='rivermile')
+#plot(1:length(lf2lcrFixedPars$rivm),rbtN,type='l',ylim=c(0,7500),
+#     main=paste('this is the abundance at the end of December ',yr),xlab='rivermile')
 #print(AnnResults$RbtIn4b)
 #print(AnnResults$rbtmat[6,])
 #plot(1:7,AnnResults$rbtmat[6,],type='l',ylim=c(0,20000),
