@@ -117,8 +117,6 @@ MoveTrout=function(year,
                    rivm=lf2lcrFixedPars$rivm,
                    meandistmove=lf2lcrFixedPars$meandistmove){
   
-#Add the Annual Recruitment
-rbtvec[1]=rbtvec[1]+AnnRec/12
 #Set up a matrix to keep the Annual Abundance by Reach
 rbtmat=matrix(0,ncol=7,nrow=12)
 #Set up the vector to get the RBT Abundance in the LCR Reach
